@@ -5,6 +5,9 @@ import static edu.wpi.first.units.Units.*;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.littletonrobotics.junction.AutoLogOutput;
+import org.littletonrobotics.junction.Logger;
+
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.Pigeon2;
@@ -275,7 +278,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     public Command sysIdDynamic(SysIdRoutine.Direction direction) {
         return m_sysIdRoutineToApply.dynamic(direction);
     }
-
+    
     @Override
     public void periodic() {
         SmartDashboard.putNumber("robot yaw", getgyroyaw());
@@ -297,38 +300,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             });
         }
         
-        // addVisionMeasurement(m_Limelight.getpose3d(), kNumConfigAttempts);
-        // addVisionMeasurement(m_Limelight.getpose3d(), robotPoseStdDevs, kNumConfigAttempts);
-        // addVisionMeasurement(m_Limelight.getpose3d(), Timer.getFPGATimestamp());
-        // addDriveMeasurement(get2dgyro(), getState().ModulePositions);
-
-        // SmartDashboard.putNumber("555 pose esta get X", poseEstimator.getEstimatedPosition().getX());
-        // SmartDashboard.putNumber("555 pose esta get y", poseEstimator.getEstimatedPosition().getY());
-        // SmartDashboard.putNumber("555 pose esta get R", poseEstimator.getEstimatedPosition().getRotation().getDegrees());
-
-        // SmartDashboard.putNumber("555 current get X", getState().Pose.getX());
-        // SmartDashboard.putNumber("555 current get y", getState().Pose.getY());
-        // SmartDashboard.putNumber("555 current get R", getState().Pose.getRotation().getDegrees());
-
-        
-
-
-
-        // m_PoseEstimator.update(
-        //     get2dgyro(),
-        //     getState().ModulePositions
-        // );
-
-        
-        // // Pose2d visionMeasurement2d = visionMeasurement3d.toPose2d();
-        // m_PoseEstimator.addVisionMeasurement(m_Limelight.getpose3d(), Timer.getFPGATimestamp());
-        // m_PoseEstimator.addVisionMeasurement(m_Limelight.algaegetpose2d(), Timer.getFPGATimestamp());
-        // Pose2d currentpose = m_PoseEstimator.getEstimatedPosition();
-        // double[] currentposearray = new double[3];
-        // currentposearray[0] = currentpose.getX();
-        // currentposearray[1] = currentpose.getY();
-        // currentposearray[2] = currentpose.getRotation().getDegrees();
-        // SmartDashboard.putNumberArray("pose estmator",  currentposearray);
     }
 
     private void startSimThread() {
@@ -355,31 +326,29 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return m_pigeon.getRotation2d();
     }
 
+    @Override
+    public void addVisionMeasurement(Pose2d visionRobotPoseMeters, double timestampSeconds) {
+        super.addVisionMeasurement(visionRobotPoseMeters, Utils.fpgaToCurrentTime(timestampSeconds));
+    }
 
-    //test code
-    private SwerveDrivePoseEstimator poseEstimator;
-    private Matrix<N3, N1> robotPoseStdDevs = VecBuilder.fill(0,0,0);
-
-    public void initializePoseEstimator(
-        SwerveDriveKinematics kinematics,
-        Rotation2d gyroAngle,
-        SwerveModulePosition[] modulePositions,
-        Pose2d initialPoseMeters
+    @Override
+    public void addVisionMeasurement(
+        Pose2d visionRobotPoseMeters,
+        double timestampSeconds,
+        Matrix<N3, N1> visionMeasurementStdDevs
     ) {
-        poseEstimator = new SwerveDrivePoseEstimator(kinematics, gyroAngle, modulePositions, initialPoseMeters);
+        super.addVisionMeasurement(visionRobotPoseMeters, Utils.fpgaToCurrentTime(timestampSeconds), visionMeasurementStdDevs);
     }
 
-    public void addDriveMeasurement(Rotation2d rotation, SwerveModulePosition[] modulePositions) {
-        poseEstimator.update(rotation, modulePositions);
+    @AutoLogOutput(key = "Robot Odometry")
+      public Pose2d getPose() {
+        Pose2d robotPosition = new Pose2d(
+            getState().Pose.getX(), 
+            getState().Pose.getY(),
+            getState().Pose.getRotation()
+        );
+        return robotPosition;
+      }
+        
+  }
 
-    }
-
-    public void addVisionMeasurement(Pose2d pose, Matrix<N3, N1> stdDevs, double timestamp) {
-        poseEstimator.addVisionMeasurement(pose, timestamp, stdDevs);
-    }
-
-    // public void setlimelight(Limelight ll){
-    //     m_Limelight = ll;
-    // }
-    
-}
